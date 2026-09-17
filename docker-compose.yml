@@ -1,4 +1,21 @@
 services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: loja-roupa-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://loja:loja@postgres:5432/loja_roupa
+      PORT: 3333
+    ports:
+      - "3333:3333"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - postgres
+
   postgres:
     image: postgres:17
     container_name: loja-roupa-postgres
