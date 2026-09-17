@@ -6,6 +6,10 @@ import {
   getPaymentByIdController,
 } from "./payments.controller.js";
 
+import {
+  infinitePayWebhookController,
+} from "./webhooks/infinitepay/infinitepay-webhook.controller.js";
+
 export const paymentsRoutes =
   Router();
 
@@ -22,4 +26,9 @@ paymentsRoutes.post(
 paymentsRoutes.get(
   "/payments/:id",
   getPaymentByIdController,
+);
+
+paymentsRoutes.post(
+  "/webhooks/infinitepay",
+  infinitePayWebhookController,
 );
