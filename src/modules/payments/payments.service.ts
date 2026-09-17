@@ -6,6 +6,22 @@ import {
   PaymentsRepository,
 } from "./payments.repository.js";
 
+import {
+  InfinitePayClient,
+} from "./providers/infinitepay/infinitepay.client.js";
+
+import {
+  InfinitePayService,
+} from "./providers/infinitepay/infinitepay.service.js";
+
+const infinitePayClient =
+  new InfinitePayClient();
+
+const infinitePayService =
+  new InfinitePayService(
+    infinitePayClient,
+  );
+
 export class PaymentsService {
   constructor(
     private readonly paymentsRepository: PaymentsRepository,
@@ -38,7 +54,7 @@ export class PaymentsService {
 
   async create(
     orderId: string,
-    input: CreatePaymentInput,
+    _input: CreatePaymentInput,
   ) {
     const order =
       await this.paymentsRepository.findOrderById(
@@ -57,31 +73,133 @@ export class PaymentsService {
       );
     }
 
-    const payments =
+    const existingPayments =
       await this.paymentsRepository.findByOrderId(
         orderId,
       );
 
     const pendingPayment =
-      payments.find(
+      existingPayments.find(
         (payment) =>
-          payment.status === "pending",
+          payment.status === "pending" &&
+          payment.checkoutUrl,
       );
 
     if (pendingPayment) {
+      return {
+        payment: pendingPayment,
+        checkoutUrl:
+          pendingPayment.checkoutUrl,
+      };
+    }
+
+    const customer =
+      await this.paymentsRepository.findCustomerById(
+        order.customerId,
+      );
+
+    if (!customer) {
       throw new Error(
-        "There is already a pending payment for this order",
+        "Customer not found",
       );
     }
 
-    return this.paymentsRepository.createPayment(
-      {
+    const orderItems =
+      await this.paymentsRepository.findOrderItems(
         orderId,
-        status: "pending",
-        method: input.method,
-        amountInCents:
-          order.totalInCents,
-      },
-    );
+      );
+
+    if (orderItems.length === 0) {
+      throw new Error(
+        "Order has no items",
+      );
+    }
+
+    const payment =
+      await this.paymentsRepository.createPayment(
+        {
+          orderId,
+          status: "pending",
+          method: "checkout",
+          amountInCents:
+            order.totalInCents,
+          provider: "infinitepay",
+        },
+      );
+
+    if (!payment) {
+      throw new Error(
+        "Failed to create payment",
+      );
+    }
+
+    const items =
+      orderItems.map((item) => ({
+        quantity: item.quantity,
+
+        price: item.unitPriceInCents,
+
+        description:
+          `${item.productName} - ${item.color} - ${item.size}`,
+      }));
+
+    try {
+      const checkout =
+        await infinitePayService.createCheckout(
+          {
+            orderNsu: order.id,
+
+            items,
+
+            customer: {
+              name: customer.name,
+              email: customer.email,
+              ...(customer.phone
+                ? {
+                    phone_number:
+                      customer.phone,
+                  }
+                : {}),
+            },
+
+            redirectUrl:
+              process.env.FRONTEND_URL,
+
+            webhookUrl:
+              process.env
+                .INFINITEPAY_WEBHOOK_URL,
+          },
+        );
+
+      const updatedPayment =
+        await this.paymentsRepository.updatePayment(
+          payment.id,
+          {
+            checkoutUrl:
+              checkout.checkoutUrl,
+          },
+        );
+
+      if (!updatedPayment) {
+        throw new Error(
+          "Failed to update payment",
+        );
+      }
+
+      return {
+        payment: updatedPayment,
+        checkoutUrl:
+          checkout.checkoutUrl,
+      };
+    } catch (error) {
+      await this.paymentsRepository.updatePayment(
+        payment.id,
+        {
+          status: "failed",
+        },
+      );
+
+      throw error;
+    }
   }
 }
