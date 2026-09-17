@@ -2,6 +2,10 @@ import "dotenv/config";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 
+import * as schema from "./schema/index.js";
+
 const connection = postgres(process.env.DATABASE_URL!);
 
-export const db = drizzle(connection);
+export const db = drizzle(connection, {
+  schema,
+});
