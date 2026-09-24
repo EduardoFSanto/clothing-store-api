@@ -1,26 +1,13 @@
-import type {
-  CreatePaymentInput,
-} from "./payments.schemas.js";
+import type { CreatePaymentInput } from "./payments.schemas.js";
 
-import {
-  PaymentsRepository,
-} from "./payments.repository.js";
+import { PaymentsRepository } from "./payments.repository.js";
 
-import {
-  InfinitePayClient,
-} from "./providers/infinitepay/infinitepay.client.js";
+import { InfinitePayClient } from "./providers/infinitepay/infinitepay.client.js";
+import { InfinitePayService } from "./providers/infinitepay/infinitepay.service.js";
 
-import {
-  InfinitePayService,
-} from "./providers/infinitepay/infinitepay.service.js";
+const infinitePayClient = new InfinitePayClient();
 
-const infinitePayClient =
-  new InfinitePayClient();
-
-const infinitePayService =
-  new InfinitePayService(
-    infinitePayClient,
-  );
+const infinitePayService = new InfinitePayService(infinitePayClient);
 
 export class PaymentsService {
   constructor(
@@ -28,28 +15,18 @@ export class PaymentsService {
   ) {}
 
   async findById(id: string) {
-    return this.paymentsRepository.findById(
-      id,
-    );
+    return this.paymentsRepository.findById(id);
   }
 
-  async findByOrderId(
-    orderId: string,
-  ) {
+  async findByOrderId(orderId: string) {
     const order =
-      await this.paymentsRepository.findOrderById(
-        orderId,
-      );
+      await this.paymentsRepository.findOrderById(orderId);
 
     if (!order) {
-      throw new Error(
-        "Order not found",
-      );
+      throw new Error("Order not found");
     }
 
-    return this.paymentsRepository.findByOrderId(
-      orderId,
-    );
+    return this.paymentsRepository.findByOrderId(orderId);
   }
 
   async create(
@@ -57,14 +34,10 @@ export class PaymentsService {
     _input: CreatePaymentInput,
   ) {
     const order =
-      await this.paymentsRepository.findOrderById(
-        orderId,
-      );
+      await this.paymentsRepository.findOrderById(orderId);
 
     if (!order) {
-      throw new Error(
-        "Order not found",
-      );
+      throw new Error("Order not found");
     }
 
     if (order.status !== "pending") {
@@ -74,9 +47,7 @@ export class PaymentsService {
     }
 
     const existingPayments =
-      await this.paymentsRepository.findByOrderId(
-        orderId,
-      );
+      await this.paymentsRepository.findByOrderId(orderId);
 
     const pendingPayment =
       existingPayments.find(
@@ -88,8 +59,7 @@ export class PaymentsService {
     if (pendingPayment) {
       return {
         payment: pendingPayment,
-        checkoutUrl:
-          pendingPayment.checkoutUrl,
+        checkoutUrl: pendingPayment.checkoutUrl,
       };
     }
 
@@ -99,9 +69,7 @@ export class PaymentsService {
       );
 
     if (!customer) {
-      throw new Error(
-        "Customer not found",
-      );
+      throw new Error("Customer not found");
     }
 
     const orderItems =
@@ -110,73 +78,58 @@ export class PaymentsService {
       );
 
     if (orderItems.length === 0) {
-      throw new Error(
-        "Order has no items",
-      );
+      throw new Error("Order has no items");
     }
 
     const payment =
-      await this.paymentsRepository.createPayment(
-        {
-          orderId,
-          status: "pending",
-          method: "checkout",
-          amountInCents:
-            order.totalInCents,
-          provider: "infinitepay",
-        },
-      );
+      await this.paymentsRepository.createPayment({
+        orderId,
+        status: "pending",
+        method: "checkout",
+        amountInCents: order.totalInCents,
+        provider: "infinitepay",
+      });
 
     if (!payment) {
-      throw new Error(
-        "Failed to create payment",
-      );
+      throw new Error("Failed to create payment");
     }
 
-    const items =
-      orderItems.map((item) => ({
-        quantity: item.quantity,
-
-        price: item.unitPriceInCents,
-
-        description:
-          `${item.productName} - ${item.color} - ${item.size}`,
-      }));
+    const items = orderItems.map((item) => ({
+      quantity: item.quantity,
+      price: item.unitPriceInCents,
+      description:
+        `${item.productName} - ${item.color} - ${item.size}`,
+    }));
 
     try {
       const checkout =
-        await infinitePayService.createCheckout(
-          {
-            orderNsu: order.id,
+        await infinitePayService.createCheckout({
+          orderNsu: order.id,
+          items,
 
-            items,
-
-            customer: {
-              name: customer.name,
-              email: customer.email,
-              ...(customer.phone
-                ? {
-                    phone_number:
-                      customer.phone,
-                  }
-                : {}),
-            },
-
-            redirectUrl:
-              process.env.FRONTEND_URL,
-
-            webhookUrl:
-              process.env
-                .INFINITEPAY_WEBHOOK_URL,
+          customer: {
+            name: customer.name,
+            email: customer.email,
+            ...(customer.phone
+              ? {
+                  phone_number: customer.phone,
+                }
+              : {}),
           },
-        );
+
+          redirectUrl:
+            process.env.FRONTEND_URL || undefined,
+
+          webhookUrl:
+            process.env.INFINITEPAY_WEBHOOK_URL ||
+            undefined,
+        });
 
       const updatedPayment =
         await this.paymentsRepository.updatePayment(
           payment.id,
           {
-            checkoutUrl:
-              checkout.checkoutUrl,
+            checkoutUrl: checkout.checkoutUrl,
           },
         );
 
@@ -188,8 +141,7 @@ export class PaymentsService {
 
       return {
         payment: updatedPayment,
-        checkoutUrl:
-          checkout.checkoutUrl,
+        checkoutUrl: checkout.checkoutUrl,
       };
     } catch (error) {
       await this.paymentsRepository.updatePayment(

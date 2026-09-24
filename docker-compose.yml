@@ -5,6 +5,8 @@ services:
       dockerfile: Dockerfile
     container_name: loja-roupa-api
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://loja:loja@postgres:5432/loja_roupa
       PORT: 3333

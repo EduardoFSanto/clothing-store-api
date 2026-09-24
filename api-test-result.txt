@@ -1,7 +1,7 @@
 ========================================
 SAINT MARIN - API AUTOMATED TEST
 ========================================
-Data: 2026-09-23T01:25:41.669Z
+Data: 2026-09-24T22:18:44.970Z
 API: http://localhost:3333
 Test CEP: 27255000
 
@@ -18,20 +18,28 @@ PASS | Find or create customer | HTTP 200
 PASS | CEP lookup / ViaCEP | HTTP 200
 PASS | Shipping quote | HTTP 200
 PASS | Create order | HTTP 201
-INFO | Order ID: 1045379a-d93b-4635-b5d6-59a711818332
+INFO | Order ID: 592919ea-7bb2-4296-9aac-1c1cadb2c659
 PASS | Stock reservation | Stock changed from 10 to 8
 PASS | Get order | HTTP 200
-SKIP | Create payment | InfinitePay request failed with status 404: {"success":false,"error":"external_checkout_not_enabled","message":"External checkout is not enabled for this merchant. Enable it in your checkout settings to start creating payment links.","redirect_url":"https://app.infinitepay.io/external-checkout#configuracoes?enabled=true"}
+PASS | Create payment | HTTP 201
+INFO | InfinitePay checkout URL generated
 PASS | Get order payments | HTTP 200
+PASS | InfinitePay webhook | HTTP 200
+PASS | Paid order status | Order changed from pending to paid
+PASS | Paid payment status | Payment marked as paid
+PASS | InfinitePay webhook idempotency | Duplicate webhook accepted safely
+PASS | Create cancellation test order | HTTP 201
+INFO | Cancellation Order ID: 43c78ea3-2be6-4233-a1d1-dbb879cccede
+PASS | Second stock reservation | Stock changed from 8 to 7
 PASS | Cancel order | HTTP 200
 PASS | Cancelled order status | Order is cancelled
-PASS | Stock restoration | Stock returned from 8 to 10
+PASS | Stock restoration | Stock returned from 7 to 8
 PASS | Cancel already cancelled order | Idempotent cancellation
 
 ========================================
 SUMMARY
 ========================================
-PASS: 20
+PASS: 27
 FAIL: 0
-SKIP: 1
+SKIP: 0
 ========================================

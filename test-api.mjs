@@ -88,7 +88,9 @@ function getErrorMessage(response) {
     response.data &&
     typeof response.data === "object"
   ) {
-    if (typeof response.data.message === "string") {
+    if (
+      typeof response.data.message === "string"
+    ) {
       return response.data.message;
     }
 
@@ -134,7 +136,9 @@ async function run() {
   let product = null;
   let variant = null;
   let customer = null;
+
   let order = null;
+  let payment = null;
 
   /*
    * ==================================================
@@ -179,7 +183,7 @@ async function run() {
 
   /*
    * ==================================================
-   * 2. CATEGORY
+   * 2. CREATE CATEGORY
    * ==================================================
    */
 
@@ -276,7 +280,7 @@ async function run() {
 
   /*
    * ==================================================
-   * 4. PRODUCT
+   * 4. CREATE PRODUCT
    * ==================================================
    */
 
@@ -689,25 +693,10 @@ async function run() {
         `HTTP ${response.status}`,
       );
     } else {
-      const message =
-        getErrorMessage(response);
-
-      if (
-        message.toLowerCase().includes("correios") ||
-        message
-          .toLowerCase()
-          .includes("shipping")
-      ) {
-        skip(
-          "Shipping quote",
-          "Correios integration is not configured",
-        );
-      } else {
-        fail(
-          "Shipping quote",
-          `HTTP ${response.status} - ${message}`,
-        );
-      }
+      fail(
+        "Shipping quote",
+        `HTTP ${response.status} - ${getErrorMessage(response)}`,
+      );
     }
   } catch (error) {
     fail(
@@ -767,18 +756,13 @@ async function run() {
     return;
   }
 
-  /*
-   * ==================================================
-   * 14. CREATE ORDER
-   * ==================================================
-   */
-
   try {
     const response = await request(
       "POST",
       "/orders",
       {
         customerId: customer.id,
+
         shippingAddress: {
           cep: TEST_CEP,
           street: "Rua Teste",
@@ -788,6 +772,7 @@ async function run() {
           city: "Volta Redonda",
           state: "RJ",
         },
+
         items: [
           {
             productVariantId: variant.id,
@@ -845,7 +830,7 @@ async function run() {
 
   /*
    * ==================================================
-   * 15. VERIFY STOCK AFTER ORDER
+   * 14. VERIFY STOCK AFTER ORDER
    * ==================================================
    */
 
@@ -889,7 +874,7 @@ async function run() {
 
   /*
    * ==================================================
-   * 16. GET ORDER
+   * 15. GET ORDER
    * ==================================================
    */
 
@@ -929,9 +914,11 @@ async function run() {
 
   /*
    * ==================================================
-   * 17. CREATE PAYMENT
+   * 16. CREATE PAYMENT
    * ==================================================
    */
+
+  let paymentCreated = false;
 
   try {
     const response = await request(
@@ -940,41 +927,50 @@ async function run() {
       {},
     );
 
-    if (
-      response.ok ||
-      response.status === 201
-    ) {
-      const payment = getData(response);
+    if (response.ok) {
+      const paymentResponse = getData(response);
 
-      pass(
-        "Create payment",
-        `HTTP ${response.status}`,
-      );
+      /*
+       * A resposta real do endpoint é:
+       *
+       * {
+       *   payment: {...},
+       *   checkoutUrl: "..."
+       * }
+       */
 
-      if (payment?.checkoutUrl) {
-        log(
-          "INFO | InfinitePay checkout URL generated",
-        );
-      }
-    } else {
-      const message =
-        getErrorMessage(response);
+      payment =
+        paymentResponse?.payment ?? null;
 
-      if (
-        message
-          .toLowerCase()
-          .includes("infinitepay")
-      ) {
-        skip(
+      if (payment?.id) {
+        paymentCreated = true;
+
+        pass(
           "Create payment",
-          message,
+          `HTTP ${response.status}`,
         );
+
+        if (paymentResponse?.checkoutUrl) {
+          log(
+            "INFO | InfinitePay checkout URL generated",
+          );
+        } else {
+          fail(
+            "Create payment",
+            "Payment was created without checkout URL",
+          );
+        }
       } else {
         fail(
           "Create payment",
-          `HTTP ${response.status} - ${message}`,
+          "Response did not contain payment id",
         );
       }
+    } else {
+      fail(
+        "Create payment",
+        `HTTP ${response.status} - ${getErrorMessage(response)}`,
+      );
     }
   } catch (error) {
     fail(
@@ -987,7 +983,7 @@ async function run() {
 
   /*
    * ==================================================
-   * 18. GET ORDER PAYMENTS
+   * 17. GET ORDER PAYMENTS
    * ==================================================
    */
 
@@ -997,11 +993,30 @@ async function run() {
       `/orders/${order.id}/payments`,
     );
 
-    if (response.ok) {
-      pass(
-        "Get order payments",
-        `HTTP ${response.status}`,
-      );
+    const payments = getData(response);
+
+    if (
+      response.ok &&
+      Array.isArray(payments)
+    ) {
+      const foundPayment =
+        payment?.id
+          ? payments.find(
+              (item) => item.id === payment.id,
+            )
+          : null;
+
+      if (foundPayment) {
+        pass(
+          "Get order payments",
+          `HTTP ${response.status}`,
+        );
+      } else {
+        fail(
+          "Get order payments",
+          "Created payment was not returned",
+        );
+      }
     } else {
       fail(
         "Get order payments",
@@ -1019,147 +1034,553 @@ async function run() {
 
   /*
    * ==================================================
-   * 19. CANCEL ORDER
+   * 18. INFINITEPAY WEBHOOK
    * ==================================================
    */
 
-  try {
-    const response = await request(
-      "PATCH",
-      `/orders/${order.id}/cancel`,
+  let webhookProcessed = false;
+
+  let webhookTransactionNsu = null;
+
+  if (!paymentCreated) {
+    skip(
+      "InfinitePay webhook",
+      "Payment was not created",
     );
 
-    if (response.ok) {
-      pass(
-        "Cancel order",
-        `HTTP ${response.status}`,
+    skip(
+      "Paid order status",
+      "Payment was not created",
+    );
+
+    skip(
+      "Paid payment status",
+      "Payment was not created",
+    );
+
+    skip(
+      "InfinitePay webhook idempotency",
+      "Payment was not created",
+    );
+  } else {
+    try {
+      webhookTransactionNsu =
+        `TEST-${Date.now()}`;
+
+      const webhookPayload = {
+        invoice_slug:
+          `test-invoice-${Date.now()}`,
+
+        amount:
+          order.totalInCents,
+
+        paid_amount:
+          order.totalInCents,
+
+        installments: 1,
+
+        capture_method: "pix",
+
+        transaction_nsu:
+          webhookTransactionNsu,
+
+        order_nsu:
+          order.id,
+
+        receipt_url:
+          "https://example.com/receipt/test",
+
+        items: [
+          {
+            quantity: 2,
+            price: 5990,
+            description:
+              "Produto Teste - Preta - M",
+          },
+        ],
+      };
+
+      const response = await request(
+        "POST",
+        "/webhooks/infinitepay",
+        webhookPayload,
       );
+
+      if (
+        response.ok &&
+        response.data?.success === true
+      ) {
+        webhookProcessed = true;
+
+        pass(
+          "InfinitePay webhook",
+          `HTTP ${response.status}`,
+        );
+      } else {
+        fail(
+          "InfinitePay webhook",
+          `HTTP ${response.status} - ${getErrorMessage(response)}`,
+        );
+      }
+    } catch (error) {
+      fail(
+        "InfinitePay webhook",
+        error instanceof Error
+          ? error.message
+          : String(error),
+      );
+    }
+
+    /*
+     * ==================================================
+     * 19. VERIFY PAID ORDER
+     * ==================================================
+     */
+
+    if (webhookProcessed) {
+      try {
+        const response = await request(
+          "GET",
+          `/orders/${order.id}`,
+        );
+
+        const orderData =
+          getData(response);
+
+        if (
+          response.ok &&
+          orderData?.id === order.id &&
+          orderData?.status === "paid"
+        ) {
+          pass(
+            "Paid order status",
+            "Order changed from pending to paid",
+          );
+        } else {
+          fail(
+            "Paid order status",
+            `Expected paid, received ${orderData?.status}`,
+          );
+        }
+      } catch (error) {
+        fail(
+          "Paid order status",
+          error instanceof Error
+            ? error.message
+            : String(error),
+        );
+      }
+    }
+
+    /*
+     * ==================================================
+     * 20. VERIFY PAID PAYMENT
+     * ==================================================
+     */
+
+    if (
+      webhookProcessed &&
+      payment?.id
+    ) {
+      try {
+        const response = await request(
+          "GET",
+          `/payments/${payment.id}`,
+        );
+
+        const paymentData =
+          getData(response);
+
+        if (
+          response.ok &&
+          paymentData?.id === payment.id &&
+          paymentData?.status === "paid" &&
+          paymentData?.provider ===
+            "infinitepay" &&
+          paymentData?.transactionNsu ===
+            webhookTransactionNsu
+        ) {
+          pass(
+            "Paid payment status",
+            "Payment marked as paid",
+          );
+        } else {
+          fail(
+            "Paid payment status",
+            `HTTP ${response.status} - Payment status: ${paymentData?.status}`,
+          );
+        }
+      } catch (error) {
+        fail(
+          "Paid payment status",
+          error instanceof Error
+            ? error.message
+            : String(error),
+        );
+      }
+    }
+
+    /*
+     * ==================================================
+     * 21. WEBHOOK IDEMPOTENCY
+     * ==================================================
+     */
+
+    if (webhookProcessed) {
+      try {
+        const webhookPayload = {
+          invoice_slug:
+            `test-invoice-${Date.now()}`,
+
+          amount:
+            order.totalInCents,
+
+          paid_amount:
+            order.totalInCents,
+
+          installments: 1,
+
+          capture_method: "pix",
+
+          transaction_nsu:
+            webhookTransactionNsu,
+
+          order_nsu:
+            order.id,
+
+          receipt_url:
+            "https://example.com/receipt/test",
+
+          items: [
+            {
+              quantity: 2,
+              price: 5990,
+              description:
+                "Produto Teste - Preta - M",
+            },
+          ],
+        };
+
+        const response = await request(
+          "POST",
+          "/webhooks/infinitepay",
+          webhookPayload,
+        );
+
+        if (
+          response.ok &&
+          response.data?.success === true
+        ) {
+          pass(
+            "InfinitePay webhook idempotency",
+            "Duplicate webhook accepted safely",
+          );
+        } else {
+          fail(
+            "InfinitePay webhook idempotency",
+            `HTTP ${response.status} - ${getErrorMessage(response)}`,
+          );
+        }
+      } catch (error) {
+        fail(
+          "InfinitePay webhook idempotency",
+          error instanceof Error
+            ? error.message
+            : String(error),
+        );
+      }
+    }
+  }
+
+  /*
+   * ==================================================
+   * 22. CREATE SECOND ORDER
+   * ==================================================
+   */
+
+  let cancellationOrder = null;
+
+  try {
+    const response = await request(
+      "POST",
+      "/orders",
+      {
+        customerId: customer.id,
+
+        shippingAddress: {
+          cep: TEST_CEP,
+          street: "Rua Teste",
+          number: "100",
+          complement:
+            "Teste de cancelamento",
+          neighborhood: "Centro",
+          city: "Volta Redonda",
+          state: "RJ",
+        },
+
+        items: [
+          {
+            productVariantId: variant.id,
+            quantity: 1,
+          },
+        ],
+      },
+    );
+
+    if (
+      response.status === 201 ||
+      response.status === 200
+    ) {
+      cancellationOrder =
+        getData(response);
+
+      if (cancellationOrder?.id) {
+        pass(
+          "Create cancellation test order",
+          `HTTP ${response.status}`,
+        );
+
+        log(
+          `INFO | Cancellation Order ID: ${cancellationOrder.id}`,
+        );
+      } else {
+        fail(
+          "Create cancellation test order",
+          "Response did not contain order id",
+        );
+      }
     } else {
       fail(
-        "Cancel order",
+        "Create cancellation test order",
         `HTTP ${response.status} - ${getErrorMessage(response)}`,
       );
     }
   } catch (error) {
     fail(
+      "Create cancellation test order",
+      error instanceof Error
+        ? error.message
+        : String(error),
+    );
+  }
+
+  /*
+   * ==================================================
+   * 23. VERIFY SECOND STOCK RESERVATION
+   * ==================================================
+   */
+
+  if (cancellationOrder?.id) {
+    try {
+      const response = await request(
+        "GET",
+        `/products/${product.id}/variants`,
+      );
+
+      const variants = getData(response);
+
+      const currentVariant =
+        Array.isArray(variants)
+          ? variants.find(
+              (item) => item.id === variant.id,
+            )
+          : null;
+
+      if (
+        response.ok &&
+        currentVariant?.stock === 7
+      ) {
+        pass(
+          "Second stock reservation",
+          "Stock changed from 8 to 7",
+        );
+      } else {
+        fail(
+          "Second stock reservation",
+          `Expected 7, received ${currentVariant?.stock}`,
+        );
+      }
+    } catch (error) {
+      fail(
+        "Second stock reservation",
+        error instanceof Error
+          ? error.message
+          : String(error),
+      );
+    }
+  } else {
+    skip(
+      "Second stock reservation",
+      "Cancellation order was not created",
+    );
+  }
+
+  /*
+   * ==================================================
+   * 24. CANCEL SECOND ORDER
+   * ==================================================
+   */
+
+  if (!cancellationOrder?.id) {
+    skip(
       "Cancel order",
-      error instanceof Error
-        ? error.message
-        : String(error),
-    );
-  }
-
-  /*
-   * ==================================================
-   * 20. VERIFY CANCELLED ORDER
-   * ==================================================
-   */
-
-  try {
-    const response = await request(
-      "GET",
-      `/orders/${order.id}`,
+      "Cancellation order was not created",
     );
 
-    const orderData = getData(response);
-
-    if (
-      response.ok &&
-      orderData?.status === "cancelled"
-    ) {
-      pass(
-        "Cancelled order status",
-        "Order is cancelled",
-      );
-    } else {
-      fail(
-        "Cancelled order status",
-        `Expected cancelled, received ${orderData?.status}`,
-      );
-    }
-  } catch (error) {
-    fail(
+    skip(
       "Cancelled order status",
-      error instanceof Error
-        ? error.message
-        : String(error),
-    );
-  }
-
-  /*
-   * ==================================================
-   * 21. VERIFY STOCK RESTORATION
-   * ==================================================
-   */
-
-  try {
-    const response = await request(
-      "GET",
-      `/products/${product.id}/variants`,
+      "Cancellation order was not created",
     );
 
-    const variants = getData(response);
-
-    const currentVariant =
-      Array.isArray(variants)
-        ? variants.find(
-            (item) => item.id === variant.id,
-          )
-        : null;
-
-    if (
-      response.ok &&
-      currentVariant?.stock === 10
-    ) {
-      pass(
-        "Stock restoration",
-        "Stock returned from 8 to 10",
-      );
-    } else {
-      fail(
-        "Stock restoration",
-        `Expected 10, received ${currentVariant?.stock}`,
-      );
-    }
-  } catch (error) {
-    fail(
+    skip(
       "Stock restoration",
-      error instanceof Error
-        ? error.message
-        : String(error),
-    );
-  }
-
-  /*
-   * ==================================================
-   * 22. CANCEL AGAIN
-   * ==================================================
-   */
-
-  try {
-    const response = await request(
-      "PATCH",
-      `/orders/${order.id}/cancel`,
+      "Cancellation order was not created",
     );
 
-    if (response.ok) {
-      pass(
-        "Cancel already cancelled order",
-        "Idempotent cancellation",
+    skip(
+      "Cancel already cancelled order",
+      "Cancellation order was not created",
+    );
+  } else {
+    try {
+      const response = await request(
+        "PATCH",
+        `/orders/${cancellationOrder.id}/cancel`,
       );
-    } else {
+
+      if (response.ok) {
+        pass(
+          "Cancel order",
+          `HTTP ${response.status}`,
+        );
+      } else {
+        fail(
+          "Cancel order",
+          `HTTP ${response.status} - ${getErrorMessage(response)}`,
+        );
+      }
+    } catch (error) {
       fail(
-        "Cancel already cancelled order",
-        `HTTP ${response.status} - ${getErrorMessage(response)}`,
+        "Cancel order",
+        error instanceof Error
+          ? error.message
+          : String(error),
       );
     }
-  } catch (error) {
-    fail(
-      "Cancel already cancelled order",
-      error instanceof Error
-        ? error.message
-        : String(error),
-    );
+
+    /*
+     * ==================================================
+     * 25. VERIFY CANCELLED ORDER
+     * ==================================================
+     */
+
+    try {
+      const response = await request(
+        "GET",
+        `/orders/${cancellationOrder.id}`,
+      );
+
+      const orderData =
+        getData(response);
+
+      if (
+        response.ok &&
+        orderData?.status === "cancelled"
+      ) {
+        pass(
+          "Cancelled order status",
+          "Order is cancelled",
+        );
+      } else {
+        fail(
+          "Cancelled order status",
+          `Expected cancelled, received ${orderData?.status}`,
+        );
+      }
+    } catch (error) {
+      fail(
+        "Cancelled order status",
+        error instanceof Error
+          ? error.message
+          : String(error),
+      );
+    }
+
+    /*
+     * ==================================================
+     * 26. VERIFY STOCK RESTORATION
+     * ==================================================
+     */
+
+    try {
+      const response = await request(
+        "GET",
+        `/products/${product.id}/variants`,
+      );
+
+      const variants = getData(response);
+
+      const currentVariant =
+        Array.isArray(variants)
+          ? variants.find(
+              (item) => item.id === variant.id,
+            )
+          : null;
+
+      if (
+        response.ok &&
+        currentVariant?.stock === 8
+      ) {
+        pass(
+          "Stock restoration",
+          "Stock returned from 7 to 8",
+        );
+      } else {
+        fail(
+          "Stock restoration",
+          `Expected 8, received ${currentVariant?.stock}`,
+        );
+      }
+    } catch (error) {
+      fail(
+        "Stock restoration",
+        error instanceof Error
+          ? error.message
+          : String(error),
+      );
+    }
+
+    /*
+     * ==================================================
+     * 27. CANCEL AGAIN
+     * ==================================================
+     */
+
+    try {
+      const response = await request(
+        "PATCH",
+        `/orders/${cancellationOrder.id}/cancel`,
+      );
+
+      if (response.ok) {
+        pass(
+          "Cancel already cancelled order",
+          "Idempotent cancellation",
+        );
+      } else {
+        fail(
+          "Cancel already cancelled order",
+          `HTTP ${response.status} - ${getErrorMessage(response)}`,
+        );
+      }
+    } catch (error) {
+      fail(
+        "Cancel already cancelled order",
+        error instanceof Error
+          ? error.message
+          : String(error),
+      );
+    }
   }
 
   /*
