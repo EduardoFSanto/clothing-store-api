@@ -17,7 +17,7 @@ productVariantsRoutes.get(
 );
 
 productVariantsRoutes.get(
-  "/:productId/variants/:id",
+  "/variants/:id",
   getProductVariantByIdController,
 );
 
@@ -27,11 +27,11 @@ productVariantsRoutes.post(
 );
 
 productVariantsRoutes.patch(
-  "/:productId/variants/:id",
+  "/variants/:id",
   updateProductVariantController,
 );
 
 productVariantsRoutes.delete(
-  "/:productId/variants/:id",
+  "/variants/:id",
   deleteProductVariantController,
 );

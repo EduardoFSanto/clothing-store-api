@@ -1,51 +1,66 @@
-import type {
+import {
   CreateProductVariantInput,
   UpdateProductVariantInput,
 } from "./product-variants.schemas.js";
 
-import { ProductVariantsRepository } from "./product-variants.repository.js";
+import {
+  ProductVariantsRepository,
+} from "./product-variants.repository.js";
 
 export class ProductVariantsService {
   constructor(
     private readonly productVariantsRepository: ProductVariantsRepository,
   ) {}
 
-  async findByProductId(productId: string) {
-    const product =
-      await this.productVariantsRepository.findProductById(
+  async findAllByProductId(
+    productId: string,
+  ) {
+    return this.productVariantsRepository
+      .findAllByProductId(
         productId,
       );
-
-    if (!product) {
-      throw new Error("Product not found");
-    }
-
-    return this.productVariantsRepository.findByProductId(
-      productId,
-    );
   }
 
-  async findById(id: string) {
-    return this.productVariantsRepository.findById(id);
+  async findActiveByProductId(
+    productId: string,
+  ) {
+    return this.productVariantsRepository
+      .findActiveByProductId(
+        productId,
+      );
+  }
+
+  async findById(
+    id: string,
+  ) {
+    return this.productVariantsRepository
+      .findById(id);
   }
 
   async create(
-    productId: string,
     input: CreateProductVariantInput,
   ) {
     const product =
-      await this.productVariantsRepository.findProductById(
-        productId,
-      );
+      await this.productVariantsRepository
+        .findProductById(
+          input.productId,
+        );
 
     if (!product) {
-      throw new Error("Product not found");
+      throw new Error(
+        "Product not found",
+      );
+    }
+
+    if (!product.active) {
+      throw new Error(
+        "Product is inactive",
+      );
     }
 
     const existingVariant =
-      await this.productVariantsRepository.findBySku(
-        input.sku,
-      );
+      await this.productVariantsRepository
+        .findBySku(input.sku);
 
     if (existingVariant) {
       throw new Error(
@@ -53,15 +68,10 @@ export class ProductVariantsService {
       );
     }
 
-    return this.productVariantsRepository.create({
-      productId,
-      sku: input.sku,
-      size: input.size,
-      color: input.color,
-      priceInCents: input.priceInCents,
-      stock: input.stock,
-      active: input.active ?? true,
-    });
+    return this.productVariantsRepository
+      .create({
+        ...input,
+      });
   }
 
   async update(
@@ -69,42 +79,51 @@ export class ProductVariantsService {
     input: UpdateProductVariantInput,
   ) {
     const existingVariant =
-      await this.productVariantsRepository.findById(id);
+      await this.productVariantsRepository
+        .findById(id);
 
     if (!existingVariant) {
-      return null;
+      throw new Error(
+        "Product variant not found",
+      );
     }
 
-    if (
-      input.sku &&
-      input.sku !== existingVariant.sku
-    ) {
+    if (input.sku) {
       const variantWithSameSku =
-        await this.productVariantsRepository.findBySku(
-          input.sku,
-        );
+        await this.productVariantsRepository
+          .findBySku(input.sku);
 
-      if (variantWithSameSku) {
+      if (
+        variantWithSameSku &&
+        variantWithSameSku.id !== id
+      ) {
         throw new Error(
           "A product variant with this SKU already exists",
         );
       }
     }
 
-    return this.productVariantsRepository.update(
-      id,
-      input,
-    );
+    return this.productVariantsRepository
+      .update(
+        id,
+        input,
+      );
   }
 
-  async delete(id: string) {
+  async delete(
+    id: string,
+  ) {
     const existingVariant =
-      await this.productVariantsRepository.findById(id);
+      await this.productVariantsRepository
+        .findById(id);
 
     if (!existingVariant) {
-      return null;
+      throw new Error(
+        "Product variant not found",
+      );
     }
 
-    return this.productVariantsRepository.delete(id);
+    return this.productVariantsRepository
+      .delete(id);
   }
 }
