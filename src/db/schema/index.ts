@@ -65,61 +65,65 @@ export const products = pgTable("products", {
     .notNull(),
 });
 
-export const productVariants = pgTable(
-  "product_variants",
-  {
-    id: uuid("id")
-      .defaultRandom()
-      .primaryKey(),
+export const productVariants = pgTable("product_variants", {
+  id: uuid("id").defaultRandom().primaryKey(),
 
-    productId: uuid("product_id")
-      .notNull()
-      .references(() => products.id, {
-        onDelete: "cascade",
-      }),
+  productId: uuid("product_id")
+    .notNull()
+    .references(() => products.id, {
+      onDelete: "cascade",
+    }),
 
-    sku: varchar("sku", {
-      length: 50,
-    }).notNull().unique(),
+  sku: varchar("sku", {
+    length: 50,
+  }).notNull().unique(),
 
-    size: varchar("size", {
-      length: 20,
-    }).notNull(),
+  size: varchar("size", {
+    length: 20,
+  }).notNull(),
 
-    color: varchar("color", {
-      length: 50,
-    }).notNull(),
+  color: varchar("color", {
+    length: 50,
+  }).notNull(),
 
-    priceInCents: integer(
-      "price_in_cents",
-    ).notNull(),
+  priceInCents: integer("price_in_cents")
+    .notNull(),
 
-    stock: integer("stock")
-      .default(0)
-      .notNull(),
+  stock: integer("stock")
+    .default(0)
+    .notNull(),
 
-    active: boolean("active")
-      .default(true)
-      .notNull(),
+  weightInGrams: integer("weight_in_grams")
+    .notNull(),
 
-    createdAt: timestamp("created_at", {
-      withTimezone: true,
-    })
-      .defaultNow()
-      .notNull(),
+  lengthInCentimeters: integer("length_in_centimeters")
+    .notNull(),
 
-    updatedAt: timestamp("updated_at", {
-      withTimezone: true,
-    })
-      .defaultNow()
-      .notNull(),
-  },
-);
+  heightInCentimeters: integer("height_in_centimeters")
+    .notNull(),
+
+  widthInCentimeters: integer("width_in_centimeters")
+    .notNull(),
+
+  active: boolean("active")
+    .default(true)
+    .notNull(),
+
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+  })
+    .defaultNow()
+    .notNull(),
+
+  updatedAt: timestamp("updated_at", {
+    withTimezone: true,
+  })
+    .defaultNow()
+    .notNull(),
+});
 
 export const customers = pgTable("customers", {
-  id: uuid("id")
-    .defaultRandom()
-    .primaryKey(),
+  id: uuid("id").defaultRandom().primaryKey(),
 
   name: varchar("name", {
     length: 150,
@@ -146,34 +150,42 @@ export const customers = pgTable("customers", {
     .notNull(),
 });
 
-export const orders = pgTable("orders", {
-  id: uuid("id")
-    .defaultRandom()
-    .primaryKey(),
+export const addresses = pgTable("addresses", {
+  id: uuid("id").defaultRandom().primaryKey(),
 
   customerId: uuid("customer_id")
     .notNull()
-    .references(() => customers.id),
+    .references(() => customers.id, {
+      onDelete: "cascade",
+    }),
 
-  status: varchar("status", {
-    length: 30,
-  })
-    .notNull()
-    .default("pending"),
+  cep: varchar("cep", {
+    length: 9,
+  }).notNull(),
 
-  subtotalInCents: integer(
-    "subtotal_in_cents",
-  ).notNull(),
+  street: varchar("street", {
+    length: 200,
+  }).notNull(),
 
-  shippingInCents: integer(
-    "shipping_in_cents",
-  )
-    .notNull()
-    .default(0),
+  number: varchar("number", {
+    length: 20,
+  }).notNull(),
 
-  totalInCents: integer(
-    "total_in_cents",
-  ).notNull(),
+  complement: varchar("complement", {
+    length: 100,
+  }),
+
+  neighborhood: varchar("neighborhood", {
+    length: 100,
+  }).notNull(),
+
+  city: varchar("city", {
+    length: 100,
+  }).notNull(),
+
+  state: varchar("state", {
+    length: 2,
+  }).notNull(),
 
   createdAt: timestamp("created_at", {
     withTimezone: true,
@@ -188,159 +200,193 @@ export const orders = pgTable("orders", {
     .notNull(),
 });
 
-export const orderItems = pgTable(
-  "order_items",
-  {
-    id: uuid("id")
-      .defaultRandom()
-      .primaryKey(),
+export const orders = pgTable("orders", {
+  id: uuid("id").defaultRandom().primaryKey(),
 
-    orderId: uuid("order_id")
-      .notNull()
-      .references(() => orders.id, {
-        onDelete: "cascade",
-      }),
+  customerId: uuid("customer_id")
+    .notNull()
+    .references(() => customers.id),
 
-    productVariantId: uuid(
-      "product_variant_id",
-    )
-      .notNull()
-      .references(() => productVariants.id),
+  status: varchar("status", {
+    length: 30,
+  })
+    .notNull()
+    .default("pending"),
 
-    productName: varchar("product_name", {
-      length: 150,
-    }).notNull(),
+  subtotalInCents: integer("subtotal_in_cents")
+    .notNull(),
 
-    sku: varchar("sku", {
-      length: 50,
-    }).notNull(),
+  shippingInCents: integer("shipping_in_cents")
+    .notNull()
+    .default(0),
 
-    size: varchar("size", {
-      length: 20,
-    }).notNull(),
+  totalInCents: integer("total_in_cents")
+    .notNull(),
 
-    color: varchar("color", {
-      length: 50,
-    }).notNull(),
+  shippingCep: varchar("shipping_cep", {
+    length: 9,
+  }).notNull(),
 
-    unitPriceInCents: integer(
-      "unit_price_in_cents",
-    ).notNull(),
+  shippingStreet: varchar("shipping_street", {
+    length: 200,
+  }).notNull(),
 
-    quantity: integer(
-      "quantity",
-    ).notNull(),
+  shippingNumber: varchar("shipping_number", {
+    length: 20,
+  }).notNull(),
 
-    totalInCents: integer(
-      "total_in_cents",
-    ).notNull(),
+  shippingComplement: varchar("shipping_complement", {
+    length: 100,
+  }),
 
-    createdAt: timestamp("created_at", {
-      withTimezone: true,
-    })
-      .defaultNow()
-      .notNull(),
-  },
-);
+  shippingNeighborhood: varchar("shipping_neighborhood", {
+    length: 100,
+  }).notNull(),
 
-export const payments = pgTable(
-  "payments",
-  {
-    id: uuid("id")
-      .defaultRandom()
-      .primaryKey(),
+  shippingCity: varchar("shipping_city", {
+    length: 100,
+  }).notNull(),
 
-    orderId: uuid("order_id")
-      .notNull()
-      .references(() => orders.id),
+  shippingState: varchar("shipping_state", {
+    length: 2,
+  }).notNull(),
 
-    status: varchar("status", {
-      length: 30,
-    })
-      .notNull()
-      .default("pending"),
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+  })
+    .defaultNow()
+    .notNull(),
 
-    method: varchar("method", {
-      length: 30,
-    }).notNull(),
+  updatedAt: timestamp("updated_at", {
+    withTimezone: true,
+  })
+    .defaultNow()
+    .notNull(),
+});
 
-    amountInCents: integer(
-      "amount_in_cents",
-    ).notNull(),
+export const orderItems = pgTable("order_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
 
-    provider: varchar("provider", {
-      length: 50,
+  orderId: uuid("order_id")
+    .notNull()
+    .references(() => orders.id, {
+      onDelete: "cascade",
     }),
 
-    providerPaymentId: varchar(
-      "provider_payment_id",
-      {
-        length: 150,
-      },
-    ),
+  productVariantId: uuid("product_variant_id")
+    .notNull()
+    .references(() => productVariants.id),
 
-    checkoutUrl: varchar("checkout_url", {
-      length: 500,
-    }),
+  productName: varchar("product_name", {
+    length: 150,
+  }).notNull(),
 
-    invoiceSlug: varchar("invoice_slug", {
-      length: 150,
-    }),
+  sku: varchar("sku", {
+    length: 50,
+  }).notNull(),
 
-    transactionNsu: varchar(
-      "transaction_nsu",
-      {
-        length: 150,
-      },
-    ),
+  size: varchar("size", {
+    length: 20,
+  }).notNull(),
 
-    receiptUrl: varchar("receipt_url", {
-      length: 500,
-    }),
+  color: varchar("color", {
+    length: 50,
+  }).notNull(),
 
-    createdAt: timestamp("created_at", {
-      withTimezone: true,
-    })
-      .defaultNow()
-      .notNull(),
+  unitPriceInCents: integer("unit_price_in_cents")
+    .notNull(),
 
-    updatedAt: timestamp("updated_at", {
-      withTimezone: true,
-    })
-      .defaultNow()
-      .notNull(),
-  },
-);
+  quantity: integer("quantity")
+    .notNull(),
 
-export const stockMovements = pgTable(
-  "stock_movements",
-  {
-    id: uuid("id")
-      .defaultRandom()
-      .primaryKey(),
+  totalInCents: integer("total_in_cents")
+    .notNull(),
 
-    productVariantId: uuid(
-      "product_variant_id",
-    )
-      .notNull()
-      .references(() => productVariants.id),
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+  })
+    .defaultNow()
+    .notNull(),
+});
 
-    type: varchar("type", {
-      length: 30,
-    }).notNull(),
+export const payments = pgTable("payments", {
+  id: uuid("id").defaultRandom().primaryKey(),
 
-    quantity: integer(
-      "quantity",
-    ).notNull(),
+  orderId: uuid("order_id")
+    .notNull()
+    .references(() => orders.id),
 
-    reason: varchar("reason", {
-      length: 255,
-    }).notNull(),
+  status: varchar("status", {
+    length: 30,
+  })
+    .notNull()
+    .default("pending"),
 
-    createdAt: timestamp("created_at", {
-      withTimezone: true,
-    })
-      .defaultNow()
-      .notNull(),
-  },
-);
+  method: varchar("method", {
+    length: 30,
+  }).notNull(),
+
+  amountInCents: integer("amount_in_cents")
+    .notNull(),
+
+  provider: varchar("provider", {
+    length: 50,
+  }),
+
+  providerPaymentId: varchar("provider_payment_id", {
+    length: 150,
+  }),
+
+  checkoutUrl: varchar("checkout_url", {
+    length: 500,
+  }),
+
+  invoiceSlug: varchar("invoice_slug", {
+    length: 150,
+  }),
+
+  transactionNsu: varchar("transaction_nsu", {
+    length: 150,
+  }).unique(),
+
+  receiptUrl: varchar("receipt_url", {
+    length: 500,
+  }),
+
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+  })
+    .defaultNow()
+    .notNull(),
+
+  updatedAt: timestamp("updated_at", {
+    withTimezone: true,
+  })
+    .defaultNow()
+    .notNull(),
+});
+
+export const stockMovements = pgTable("stock_movements", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  productVariantId: uuid("product_variant_id")
+    .notNull()
+    .references(() => productVariants.id),
+
+  type: varchar("type", {
+    length: 30,
+  }).notNull(),
+
+  quantity: integer("quantity")
+    .notNull(),
+
+  reason: varchar("reason", {
+    length: 255,
+  }).notNull(),
+
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+  })
+    .defaultNow()
+    .notNull(),
+});
