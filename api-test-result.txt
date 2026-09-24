@@ -1,0 +1,37 @@
+========================================
+SAINT MARIN - API AUTOMATED TEST
+========================================
+Data: 2026-09-23T01:25:41.669Z
+API: http://localhost:3333
+Test CEP: 27255000
+
+PASS | Health check | HTTP 200
+PASS | Create category | HTTP 201
+PASS | Get categories | HTTP 200
+PASS | Create product | HTTP 201
+PASS | Get products | HTTP 200
+PASS | Get product by id | HTTP 200
+PASS | Create product variant | HTTP 201
+PASS | Get product variants | HTTP 200
+PASS | Get variant by id | HTTP 200
+PASS | Find or create customer | HTTP 200
+PASS | CEP lookup / ViaCEP | HTTP 200
+PASS | Shipping quote | HTTP 200
+PASS | Create order | HTTP 201
+INFO | Order ID: 1045379a-d93b-4635-b5d6-59a711818332
+PASS | Stock reservation | Stock changed from 10 to 8
+PASS | Get order | HTTP 200
+SKIP | Create payment | InfinitePay request failed with status 404: {"success":false,"error":"external_checkout_not_enabled","message":"External checkout is not enabled for this merchant. Enable it in your checkout settings to start creating payment links.","redirect_url":"https://app.infinitepay.io/external-checkout#configuracoes?enabled=true"}
+PASS | Get order payments | HTTP 200
+PASS | Cancel order | HTTP 200
+PASS | Cancelled order status | Order is cancelled
+PASS | Stock restoration | Stock returned from 8 to 10
+PASS | Cancel already cancelled order | Idempotent cancellation
+
+========================================
+SUMMARY
+========================================
+PASS: 20
+FAIL: 0
+SKIP: 1
+========================================
