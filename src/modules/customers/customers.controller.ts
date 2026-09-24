@@ -74,6 +74,23 @@ export async function createCustomerController(
   });
 }
 
+export async function findOrCreateCustomerController(
+  req: Request,
+  res: Response,
+) {
+  const input =
+    createCustomerSchema.parse(req.body);
+
+  const customer =
+    await customersService.findOrCreate(
+      input,
+    );
+
+  return res.status(200).json({
+    data: customer,
+  });
+}
+
 export async function updateCustomerController(
   req: Request,
   res: Response,

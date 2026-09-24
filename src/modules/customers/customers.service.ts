@@ -18,9 +18,18 @@ export class CustomersService {
     return this.customersRepository.findById(id);
   }
 
+  async findByEmail(email: string) {
+    const normalizedEmail =
+      email.trim().toLowerCase();
+
+    return this.customersRepository.findByEmail(
+      normalizedEmail,
+    );
+  }
+
   async create(input: CreateCustomerInput) {
     const normalizedEmail =
-      input.email.toLowerCase();
+      input.email.trim().toLowerCase();
 
     const existingCustomer =
       await this.customersRepository.findByEmail(
@@ -31,6 +40,26 @@ export class CustomersService {
       throw new Error(
         "A customer with this email already exists",
       );
+    }
+
+    return this.customersRepository.create({
+      name: input.name,
+      email: normalizedEmail,
+      phone: input.phone,
+    });
+  }
+
+  async findOrCreate(input: CreateCustomerInput) {
+    const normalizedEmail =
+      input.email.trim().toLowerCase();
+
+    const existingCustomer =
+      await this.customersRepository.findByEmail(
+        normalizedEmail,
+      );
+
+    if (existingCustomer) {
+      return existingCustomer;
     }
 
     return this.customersRepository.create({

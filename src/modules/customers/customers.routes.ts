@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import {
   createCustomerController,
+  findOrCreateCustomerController,
   getCustomerByIdController,
   getCustomersController,
   updateCustomerController,
@@ -23,6 +24,11 @@ customersRoutes.get(
 customersRoutes.post(
   "/",
   createCustomerController,
+);
+
+customersRoutes.post(
+  "/find-or-create",
+  findOrCreateCustomerController,
 );
 
 customersRoutes.patch(
