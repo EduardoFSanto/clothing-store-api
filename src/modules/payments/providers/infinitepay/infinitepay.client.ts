@@ -31,8 +31,14 @@ export class InfinitePayClient {
       );
     }
 
-    this.apiUrl = apiUrl;
-    this.handle = handle;
+    this.apiUrl =
+      apiUrl.replace(/\/+$/, "");
+
+    this.handle =
+      handle.trim().replace(
+        /^\$/,
+        "",
+      );
   }
 
   async createCheckout(
@@ -47,22 +53,27 @@ export class InfinitePayClient {
         handle: this.handle,
       });
 
-    const response = await fetch(
-      `${this.apiUrl}/links`,
-      {
-        method: "POST",
+    const response =
+      await fetch(
+        `${this.apiUrl}/links`,
+        {
+          method: "POST",
 
-        headers: {
-          "Content-Type": "application/json",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify(
+            requestBody,
+          ),
+
+          signal:
+            AbortSignal.timeout(
+              10_000,
+            ),
         },
-
-        body: JSON.stringify(
-          requestBody,
-        ),
-
-        signal: AbortSignal.timeout(10_000),
-      },
-    );
+      );
 
     const responseText =
       await response.text();
@@ -71,16 +82,25 @@ export class InfinitePayClient {
 
     try {
       responseData =
-        JSON.parse(responseText);
+        JSON.parse(
+          responseText,
+        );
     } catch {
-      throw new Error(
-        "InfinitePay returned an invalid JSON response",
-      );
+      responseData =
+        responseText;
     }
 
     if (!response.ok) {
+      const providerMessage =
+        typeof responseData ===
+        "string"
+          ? responseData
+          : JSON.stringify(
+              responseData,
+            );
+
       throw new Error(
-        `InfinitePay request failed with status ${response.status}`,
+        `InfinitePay request failed with status ${response.status}: ${providerMessage}`,
       );
     }
 

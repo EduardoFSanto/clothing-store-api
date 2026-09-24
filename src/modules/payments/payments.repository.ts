@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { db } from "../../db/client.js";
 
@@ -48,11 +48,9 @@ export class PaymentsRepository {
         sku: orderItems.sku,
         size: orderItems.size,
         color: orderItems.color,
-        unitPriceInCents:
-          orderItems.unitPriceInCents,
+        unitPriceInCents: orderItems.unitPriceInCents,
         quantity: orderItems.quantity,
-        totalInCents:
-          orderItems.totalInCents,
+        totalInCents: orderItems.totalInCents,
       })
       .from(orderItems)
       .where(eq(orderItems.orderId, orderId));
@@ -76,19 +74,13 @@ export class PaymentsRepository {
         orderId: data.orderId,
         status: data.status,
         method: data.method,
-        amountInCents:
-          data.amountInCents,
+        amountInCents: data.amountInCents,
         provider: data.provider,
-        providerPaymentId:
-          data.providerPaymentId,
-        checkoutUrl:
-          data.checkoutUrl,
-        invoiceSlug:
-          data.invoiceSlug,
-        transactionNsu:
-          data.transactionNsu,
-        receiptUrl:
-          data.receiptUrl,
+        providerPaymentId: data.providerPaymentId,
+        checkoutUrl: data.checkoutUrl,
+        invoiceSlug: data.invoiceSlug,
+        transactionNsu: data.transactionNsu,
+        receiptUrl: data.receiptUrl,
       })
       .returning();
 
@@ -135,6 +127,72 @@ export class PaymentsRepository {
     return order ?? null;
   }
 
+  async markPaymentAsPaid(
+    paymentId: string,
+    orderId: string,
+    data: {
+      method: string;
+      providerPaymentId: string;
+      invoiceSlug: string;
+      transactionNsu: string;
+      receiptUrl: string;
+    },
+  ) {
+    return db.transaction(async (tx) => {
+      const [order] = await tx
+        .update(orders)
+        .set({
+          status: "paid",
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(orders.id, orderId),
+            eq(orders.status, "pending"),
+          ),
+        )
+        .returning();
+
+      if (!order) {
+        throw new Error(
+          "Order cannot be marked as paid",
+        );
+      }
+
+      const [payment] = await tx
+        .update(payments)
+        .set({
+          status: "paid",
+          method: data.method,
+          providerPaymentId:
+            data.providerPaymentId,
+          invoiceSlug: data.invoiceSlug,
+          transactionNsu: data.transactionNsu,
+          receiptUrl: data.receiptUrl,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(payments.id, paymentId),
+            eq(payments.orderId, orderId),
+            eq(payments.status, "pending"),
+          ),
+        )
+        .returning();
+
+      if (!payment) {
+        throw new Error(
+          "Payment cannot be marked as paid",
+        );
+      }
+
+      return {
+        payment,
+        order,
+      };
+    });
+  }
+
   async findById(id: string) {
     const [payment] = await db
       .select()
@@ -177,18 +235,13 @@ export class PaymentsRepository {
       .select()
       .from(payments)
       .where(
-        eq(payments.orderId, orderId),
+        and(
+          eq(payments.orderId, orderId),
+          eq(payments.provider, provider),
+        ),
       )
       .limit(1);
 
-    if (!payment) {
-      return null;
-    }
-
-    if (payment.provider !== provider) {
-      return null;
-    }
-
-    return payment;
+    return payment ?? null;
   }
 }
