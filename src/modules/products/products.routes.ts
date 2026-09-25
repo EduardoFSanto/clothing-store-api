@@ -6,6 +6,8 @@ import {
   createProductController,
   getProductByIdController,
   getProductsController,
+  updateProductController,
+  deactivateProductController,
 } from "./products.controller.js";
 
 export const productsRoutes = Router();
@@ -21,4 +23,16 @@ productsRoutes.post(
   "/",
   requireAuth,
   createProductController,
+);
+
+productsRoutes.patch(
+  "/:id",
+  requireAuth,
+  updateProductController,
+);
+
+productsRoutes.delete(
+  "/:id",
+  requireAuth,
+  deactivateProductController,
 );
