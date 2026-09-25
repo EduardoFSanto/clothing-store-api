@@ -1,5 +1,7 @@
 import { Router } from "express";
 
+import { requireAuth } from "../../middleware/require-auth.js";
+
 import {
   createCategoryController,
   getCategoriesController,
@@ -8,8 +10,18 @@ import {
 
 export const categoriesRoutes = Router();
 
-categoriesRoutes.get("/", getCategoriesController);
+categoriesRoutes.get(
+  "/",
+  getCategoriesController,
+);
 
-categoriesRoutes.get("/:id", getCategoryByIdController);
+categoriesRoutes.get(
+  "/:id",
+  getCategoryByIdController,
+);
 
-categoriesRoutes.post("/", createCategoryController);
+categoriesRoutes.post(
+  "/",
+  requireAuth,
+  createCategoryController,
+);

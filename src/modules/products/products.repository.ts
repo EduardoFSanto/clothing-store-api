@@ -17,6 +17,7 @@ export class ProductsRepository {
         name: products.name,
         slug: products.slug,
         description: products.description,
+        imageUrl: products.imageUrl,
         active: products.active,
         createdAt: products.createdAt,
         updatedAt: products.updatedAt,
@@ -30,7 +31,10 @@ export class ProductsRepository {
       .from(products)
       .innerJoin(
         categories,
-        eq(products.categoryId, categories.id),
+        eq(
+          products.categoryId,
+          categories.id,
+        ),
       );
   }
 
@@ -42,6 +46,7 @@ export class ProductsRepository {
         name: products.name,
         slug: products.slug,
         description: products.description,
+        imageUrl: products.imageUrl,
         active: products.active,
         createdAt: products.createdAt,
         updatedAt: products.updatedAt,
@@ -55,11 +60,13 @@ export class ProductsRepository {
       .from(products)
       .innerJoin(
         categories,
-        eq(products.categoryId, categories.id),
+        eq(
+          products.categoryId,
+          categories.id,
+        ),
       )
       .where(eq(products.id, id))
       .limit(1);
-
 
     return product ?? null;
   }

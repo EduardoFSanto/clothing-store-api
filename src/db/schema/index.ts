@@ -1,4 +1,58 @@
-import {
+export const users = pgTable("users", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  name: varchar("name", {
+    length: 150,
+  }).notNull(),
+
+  email: varchar("email", {
+    length: 255,
+  }).notNull().unique(),
+
+  passwordHash: varchar("password_hash", {
+    length: 255,
+  }).notNull(),
+
+  role: varchar("role", {
+    length: 30,
+  }).notNull().default("admin"),
+
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+  })
+    .defaultNow()
+    .notNull(),
+
+  updatedAt: timestamp("updated_at", {
+    withTimezone: true,
+  })
+    .defaultNow()
+    .notNull(),
+});
+
+export const sessions = pgTable("sessions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, {
+      onDelete: "cascade",
+    }),
+
+  tokenHash: varchar("token_hash", {
+    length: 128,
+  }).notNull().unique(),
+
+  expiresAt: timestamp("expires_at", {
+    withTimezone: true,
+  }).notNull(),
+
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+  })
+    .defaultNow()
+    .notNull(),
+});import {
   boolean,
   integer,
   pgTable,
@@ -31,22 +85,19 @@ export const categories = pgTable("categories", {
 
 export const products = pgTable("products", {
   id: uuid("id").defaultRandom().primaryKey(),
-
   categoryId: uuid("category_id")
     .notNull()
     .references(() => categories.id),
 
-  name: varchar("name", {
-    length: 150,
-  }).notNull(),
+  name: varchar("name", { length: 150 }).notNull(),
 
-  slug: varchar("slug", {
-    length: 180,
-  }).notNull().unique(),
+  slug: varchar("slug", { length: 180 })
+    .notNull()
+    .unique(),
 
-  description: varchar("description", {
-    length: 1000,
-  }),
+  description: varchar("description", { length: 1000 }),
+
+  imageUrl: varchar("image_url", { length: 1000 }),
 
   active: boolean("active")
     .default(true)
@@ -64,7 +115,6 @@ export const products = pgTable("products", {
     .defaultNow()
     .notNull(),
 });
-
 export const productVariants = pgTable("product_variants", {
   id: uuid("id").defaultRandom().primaryKey(),
 

@@ -1,5 +1,7 @@
 import { Router } from "express";
 
+import { requireAuth } from "../../middleware/require-auth.js";
+
 import {
   createProductVariantController,
   deleteProductVariantController,
@@ -8,8 +10,7 @@ import {
   updateProductVariantController,
 } from "./product-variants.controller.js";
 
-export const productVariantsRoutes =
-  Router();
+export const productVariantsRoutes = Router();
 
 productVariantsRoutes.get(
   "/:productId/variants",
@@ -23,15 +24,18 @@ productVariantsRoutes.get(
 
 productVariantsRoutes.post(
   "/:productId/variants",
+  requireAuth,
   createProductVariantController,
 );
 
 productVariantsRoutes.patch(
   "/variants/:id",
+  requireAuth,
   updateProductVariantController,
 );
 
 productVariantsRoutes.delete(
   "/variants/:id",
+  requireAuth,
   deleteProductVariantController,
 );

@@ -1,8 +1,11 @@
 import express from "express";
+import cookieParser from "cookie-parser";
+import cors from "cors";
 
 import { errorHandler } from "./middleware/error-handler.js";
 
 import { addressesRoutes } from "./modules/addresses/addresses.routes.js";
+import { authRoutes } from "./modules/auth/auth.routes.js";
 import { categoriesRoutes } from "./modules/categories/categories.routes.js";
 import { customersRoutes } from "./modules/customers/customers.routes.js";
 import { ordersRoutes } from "./modules/orders/orders.routes.js";
@@ -14,6 +17,16 @@ import { stockRoutes } from "./modules/stock/stock.routes.js";
 
 export const app = express();
 
+app.use(
+  cors({
+    origin:
+      process.env.FRONTEND_URL ??
+      "http://localhost:3000",
+    credentials: true,
+  }),
+);
+
+app.use(cookieParser());
 app.use(express.json());
 
 app.get("/health", (_req, res) => {
@@ -22,49 +35,24 @@ app.get("/health", (_req, res) => {
   });
 });
 
-app.use(
-  "/categories",
-  categoriesRoutes,
-);
+app.use("/auth", authRoutes);
 
-app.use(
-  "/products",
-  productsRoutes,
-);
+app.use("/categories", categoriesRoutes);
 
-app.use(
-  "/products",
-  productVariantsRoutes,
-);
+app.use("/products", productsRoutes);
 
-app.use(
-  "/customers",
-  customersRoutes,
-);
+app.use("/products", productVariantsRoutes);
 
-app.use(
-  "/addresses",
-  addressesRoutes,
-);
+app.use("/customers", customersRoutes);
 
-app.use(
-  "/shipping",
-  shippingRoutes,
-);
+app.use("/addresses", addressesRoutes);
 
-app.use(
-  "/orders",
-  ordersRoutes,
-);
+app.use("/shipping", shippingRoutes);
 
-app.use(
-  "/stock",
-  stockRoutes,
-);
+app.use("/orders", ordersRoutes);
 
-app.use(
-  "/",
-  paymentsRoutes,
-);
+app.use("/stock", stockRoutes);
+
+app.use("/", paymentsRoutes);
 
 app.use(errorHandler);

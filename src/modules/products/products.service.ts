@@ -16,7 +16,9 @@ export class ProductsService {
 
   async create(input: CreateProductInput) {
     const existingProduct =
-      await this.productsRepository.findBySlug(input.slug);
+      await this.productsRepository.findBySlug(
+        input.slug,
+      );
 
     if (existingProduct) {
       throw new Error(
@@ -29,6 +31,7 @@ export class ProductsService {
       name: input.name,
       slug: input.slug,
       description: input.description,
+      imageUrl: input.imageUrl,
       active: input.active ?? true,
     });
   }

@@ -25,7 +25,12 @@ export const createProductSchema = z.object({
     .max(1000, "Description must have at most 1000 characters")
     .optional(),
 
+  imageUrl: z
+    .url("Image URL must be valid")
+    .optional(),
+
   active: z.boolean().optional(),
 });
 
-export type CreateProductInput = z.infer<typeof createProductSchema>;
+export type CreateProductInput =
+  z.infer<typeof createProductSchema>;
