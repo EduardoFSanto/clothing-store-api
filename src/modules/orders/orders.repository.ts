@@ -15,7 +15,35 @@ import type { NewOrderItem } from "./orders.types.js";
 
 export class OrdersRepository {
   async findAll() {
-    return db.select().from(orders);
+    return db
+      .select({
+        id: orders.id,
+        status: orders.status,
+        subtotalInCents: orders.subtotalInCents,
+        shippingInCents: orders.shippingInCents,
+        totalInCents: orders.totalInCents,
+        shippingCep: orders.shippingCep,
+        shippingStreet: orders.shippingStreet,
+        shippingNumber: orders.shippingNumber,
+        shippingComplement: orders.shippingComplement,
+        shippingNeighborhood: orders.shippingNeighborhood,
+        shippingCity: orders.shippingCity,
+        shippingState: orders.shippingState,
+        createdAt: orders.createdAt,
+        updatedAt: orders.updatedAt,
+        customer: {
+          id: customers.id,
+          name: customers.name,
+          email: customers.email,
+          phone: customers.phone,
+        },
+      })
+      .from(orders)
+      .innerJoin(
+        customers,
+        eq(orders.customerId, customers.id),
+      )
+      .orderBy(sql`${orders.createdAt} desc`);
   }
 
   async findById(id: string) {
