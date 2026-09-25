@@ -12,6 +12,7 @@ import { ordersRoutes } from "./modules/orders/orders.routes.js";
 import { paymentsRoutes } from "./modules/payments/payments.routes.js";
 import { productVariantsRoutes } from "./modules/product-variants/product-variants.routes.js";
 import { productsRoutes } from "./modules/products/products.routes.js";
+import { productImagesRoutes } from "./modules/product-images/product-images.routes.js";
 import { shippingRoutes } from "./modules/shipping/shipping.routes.js";
 import { stockRoutes } from "./modules/stock/stock.routes.js";
 
@@ -42,6 +43,7 @@ app.use("/categories", categoriesRoutes);
 app.use("/products", productsRoutes);
 
 app.use("/products", productVariantsRoutes);
+app.use("/products", productImagesRoutes);
 
 app.use("/customers", customersRoutes);
 
