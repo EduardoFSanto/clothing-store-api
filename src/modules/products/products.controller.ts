@@ -1,7 +1,10 @@
 import type { Request, Response } from "express";
 
 import { ProductsRepository } from "./products.repository.js";
-import { createProductSchema } from "./products.schemas.js";
+import {
+  createProductSchema,
+  updateProductSchema,
+} from "./products.schemas.js";
 import { ProductsService } from "./products.service.js";
 
 const productsRepository = new ProductsRepository();
@@ -48,6 +51,53 @@ export async function getProductByIdController(
   return res.json({
     data: product,
   });
+}
+
+export async function updateProductController(
+  req: Request,
+  res: Response,
+) {
+  const { id } = req.params;
+
+  if (typeof id !== "string") {
+    return res.status(400).json({
+      error: { message: "Invalid product id" },
+    });
+  }
+
+  const input = updateProductSchema.parse(req.body);
+  const product = await productsService.update(id, input);
+
+  if (!product) {
+    return res.status(404).json({
+      error: { message: "Product not found" },
+    });
+  }
+
+  return res.json({ data: product });
+}
+
+export async function deactivateProductController(
+  req: Request,
+  res: Response,
+) {
+  const { id } = req.params;
+
+  if (typeof id !== "string") {
+    return res.status(400).json({
+      error: { message: "Invalid product id" },
+    });
+  }
+
+  const product = await productsService.deactivate(id);
+
+  if (!product) {
+    return res.status(404).json({
+      error: { message: "Product not found" },
+    });
+  }
+
+  return res.json({ data: product });
 }
 
 export async function createProductController(
