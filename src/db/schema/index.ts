@@ -115,6 +115,22 @@ export const products = pgTable("products", {
     .defaultNow()
     .notNull(),
 });
+export const productImages = pgTable("product_images", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  productId: uuid("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+
+  imageUrl: varchar("image_url", { length: 1000 }).notNull(),
+
+  position: integer("position").default(0).notNull(),
+
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+  }).defaultNow().notNull(),
+});
+
 export const productVariants = pgTable("product_variants", {
   id: uuid("id").defaultRandom().primaryKey(),
 
