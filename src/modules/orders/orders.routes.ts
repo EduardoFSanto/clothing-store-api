@@ -1,5 +1,7 @@
 import { Router } from "express";
 
+import { requireAuth } from "../../middleware/require-auth.js";
+
 import {
   cancelOrderController,
   createOrderController,
@@ -11,11 +13,13 @@ export const ordersRoutes = Router();
 
 ordersRoutes.get(
   "/",
+  requireAuth,
   getOrdersController,
 );
 
 ordersRoutes.get(
   "/:id",
+  requireAuth,
   getOrderByIdController,
 );
 
