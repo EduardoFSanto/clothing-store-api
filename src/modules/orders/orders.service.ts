@@ -47,8 +47,15 @@ export class OrdersService {
       await this.ordersRepository
         .findItemsByOrderId(id);
 
+    const customer =
+      await this.ordersRepository
+        .findCustomerById(
+          order.customerId,
+        );
+
     return {
       ...order,
+      customer,
       items,
     };
   }
