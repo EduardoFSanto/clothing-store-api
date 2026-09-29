@@ -1,5 +1,7 @@
 import { Router } from "express";
 
+import { requireAuth } from "../../middleware/require-auth.js";
+
 import {
   createAddressController,
   deleteAddressController,
@@ -13,25 +15,30 @@ export const addressesRoutes =
 
 addressesRoutes.get(
   "/customer/:customerId",
+  requireAuth,
   getCustomerAddressesController,
 );
 
 addressesRoutes.get(
   "/:id",
+  requireAuth,
   getAddressByIdController,
 );
 
 addressesRoutes.post(
   "/",
+  requireAuth,
   createAddressController,
 );
 
 addressesRoutes.patch(
   "/:id",
+  requireAuth,
   updateAddressController,
 );
 
 addressesRoutes.delete(
   "/:id",
+  requireAuth,
   deleteAddressController,
 );
