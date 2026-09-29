@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { requireAuth } from "../../middleware/require-auth.js";
+import { requireAdmin } from "../../middleware/require-admin.js";
 
 import {
   createCustomerController,
@@ -10,33 +11,10 @@ import {
   updateCustomerController,
 } from "./customers.controller.js";
 
-export const customersRoutes =
-  Router();
+export const customersRoutes = Router();
 
-customersRoutes.get(
-  "/",
-  requireAuth,
-  getCustomersController,
-);
-
-customersRoutes.get(
-  "/:id",
-  requireAuth,
-  getCustomerByIdController,
-);
-
-customersRoutes.post(
-  "/",
-  createCustomerController,
-);
-
-customersRoutes.post(
-  "/find-or-create",
-  findOrCreateCustomerController,
-);
-
-customersRoutes.patch(
-  "/:id",
-  requireAuth,
-  updateCustomerController,
-);
+customersRoutes.get("/", requireAuth, requireAdmin, getCustomersController);
+customersRoutes.get("/:id", requireAuth, requireAdmin, getCustomerByIdController);
+customersRoutes.post("/", createCustomerController);
+customersRoutes.post("/find-or-create", findOrCreateCustomerController);
+customersRoutes.patch("/:id", requireAuth, requireAdmin, updateCustomerController);
