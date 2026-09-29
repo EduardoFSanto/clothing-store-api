@@ -1,5 +1,7 @@
 import { Router } from "express";
 
+import { requireAuth } from "../../middleware/require-auth.js";
+
 import {
   createPaymentController,
   getOrderPaymentsController,
@@ -15,6 +17,7 @@ export const paymentsRoutes =
 
 paymentsRoutes.get(
   "/orders/:orderId/payments",
+  requireAuth,
   getOrderPaymentsController,
 );
 
@@ -25,6 +28,7 @@ paymentsRoutes.post(
 
 paymentsRoutes.get(
   "/payments/:id",
+  requireAuth,
   getPaymentByIdController,
 );
 
