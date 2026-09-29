@@ -1,5 +1,7 @@
 import { Router } from "express";
 
+import { requireAuth } from "../../middleware/require-auth.js";
+
 import {
   createCustomerController,
   findOrCreateCustomerController,
@@ -13,11 +15,13 @@ export const customersRoutes =
 
 customersRoutes.get(
   "/",
+  requireAuth,
   getCustomersController,
 );
 
 customersRoutes.get(
   "/:id",
+  requireAuth,
   getCustomerByIdController,
 );
 
@@ -33,5 +37,6 @@ customersRoutes.post(
 
 customersRoutes.patch(
   "/:id",
+  requireAuth,
   updateCustomerController,
 );
