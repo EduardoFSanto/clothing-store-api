@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { requireAuth } from "../../middleware/require-auth.js";
+import { requireAdmin } from "../../middleware/require-admin.js";
 
 import {
   cancelOrderController,
@@ -11,25 +12,7 @@ import {
 
 export const ordersRoutes = Router();
 
-ordersRoutes.get(
-  "/",
-  requireAuth,
-  getOrdersController,
-);
-
-ordersRoutes.get(
-  "/:id",
-  requireAuth,
-  getOrderByIdController,
-);
-
-ordersRoutes.post(
-  "/",
-  createOrderController,
-);
-
-ordersRoutes.patch(
-  "/:id/cancel",
-  requireAuth,
-  cancelOrderController,
-);
+ordersRoutes.get("/", requireAuth, requireAdmin, getOrdersController);
+ordersRoutes.get("/:id", requireAuth, requireAdmin, getOrderByIdController);
+ordersRoutes.post("/", createOrderController);
+ordersRoutes.patch("/:id/cancel", requireAuth, requireAdmin, cancelOrderController);
