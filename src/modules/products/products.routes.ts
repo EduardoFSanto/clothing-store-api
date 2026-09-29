@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { requireAuth } from "../../middleware/require-auth.js";
+import { requireAdmin } from "../../middleware/require-admin.js";
 
 import {
   createProductController,
@@ -13,26 +14,7 @@ import {
 export const productsRoutes = Router();
 
 productsRoutes.get("/", getProductsController);
-
-productsRoutes.get(
-  "/:id",
-  getProductByIdController,
-);
-
-productsRoutes.post(
-  "/",
-  requireAuth,
-  createProductController,
-);
-
-productsRoutes.patch(
-  "/:id",
-  requireAuth,
-  updateProductController,
-);
-
-productsRoutes.delete(
-  "/:id",
-  requireAuth,
-  deactivateProductController,
-);
+productsRoutes.get("/:id", getProductByIdController);
+productsRoutes.post("/", requireAuth, requireAdmin, createProductController);
+productsRoutes.patch("/:id", requireAuth, requireAdmin, updateProductController);
+productsRoutes.delete("/:id", requireAuth, requireAdmin, deactivateProductController);
