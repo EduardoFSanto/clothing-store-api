@@ -11,6 +11,7 @@ export const stockRoutes = Router();
 
 stockRoutes.get(
   "/:variantId",
+  requireAuth,
   getStockMovementsController,
 );
 
