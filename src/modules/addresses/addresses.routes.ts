@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { requireAuth } from "../../middleware/require-auth.js";
+import { requireAdmin } from "../../middleware/require-admin.js";
 
 import {
   createAddressController,
@@ -10,35 +11,10 @@ import {
   updateAddressController,
 } from "./addresses.controller.js";
 
-export const addressesRoutes =
-  Router();
+export const addressesRoutes = Router();
 
-addressesRoutes.get(
-  "/customer/:customerId",
-  requireAuth,
-  getCustomerAddressesController,
-);
-
-addressesRoutes.get(
-  "/:id",
-  requireAuth,
-  getAddressByIdController,
-);
-
-addressesRoutes.post(
-  "/",
-  requireAuth,
-  createAddressController,
-);
-
-addressesRoutes.patch(
-  "/:id",
-  requireAuth,
-  updateAddressController,
-);
-
-addressesRoutes.delete(
-  "/:id",
-  requireAuth,
-  deleteAddressController,
-);
+addressesRoutes.get("/customer/:customerId", requireAuth, requireAdmin, getCustomerAddressesController);
+addressesRoutes.get("/:id", requireAuth, requireAdmin, getAddressByIdController);
+addressesRoutes.post("/", requireAuth, requireAdmin, createAddressController);
+addressesRoutes.patch("/:id", requireAuth, requireAdmin, updateAddressController);
+addressesRoutes.delete("/:id", requireAuth, requireAdmin, deleteAddressController);
