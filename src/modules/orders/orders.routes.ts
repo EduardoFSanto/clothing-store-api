@@ -30,5 +30,6 @@ ordersRoutes.post(
 
 ordersRoutes.patch(
   "/:id/cancel",
+  requireAuth,
   cancelOrderController,
 );
