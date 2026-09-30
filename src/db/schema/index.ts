@@ -347,6 +347,10 @@ export const orderItems = pgTable("order_items", {
     length: 150,
   }).notNull(),
 
+  imageUrl: varchar("image_url", {
+    length: 1000,
+  }),
+
   sku: varchar("sku", {
     length: 50,
   }).notNull(),
