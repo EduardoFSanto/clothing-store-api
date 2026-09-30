@@ -84,6 +84,7 @@ export class OrdersRepository {
         stock: productVariants.stock,
         active: productVariants.active,
         productName: products.name,
+        productImageUrl: products.imageUrl,
         productActive: products.active,
       })
       .from(productVariants)
