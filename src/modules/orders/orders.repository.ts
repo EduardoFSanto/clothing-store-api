@@ -15,7 +15,7 @@ import type { NewOrderItem } from "./orders.types.js";
 
 export class OrdersRepository {
   async findAll() {
-    return db
+    const rows = await db
       .select({
         id: orders.id,
         status: orders.status,
@@ -37,15 +37,87 @@ export class OrdersRepository {
           email: customers.email,
           phone: customers.phone,
         },
+        item: {
+          id: orderItems.id,
+          productName: orderItems.productName,
+          imageUrl: orderItems.imageUrl,
+          size: orderItems.size,
+          color: orderItems.color,
+          quantity: orderItems.quantity,
+        },
       })
       .from(orders)
       .innerJoin(
         customers,
         eq(orders.customerId, customers.id),
       )
-      .orderBy(sql`${orders.createdAt} desc`);
-  }
+      .leftJoin(
+        orderItems,
+        eq(orderItems.orderId, orders.id),
+      )
+      .orderBy(sql`\${orders.createdAt} desc`);
 
+    const grouped = new Map<string, {
+      id: string;
+      status: string;
+      subtotalInCents: number;
+      shippingInCents: number;
+      totalInCents: number;
+      shippingCep: string;
+      shippingStreet: string;
+      shippingNumber: string;
+      shippingComplement: string | null;
+      shippingNeighborhood: string;
+      shippingCity: string;
+      shippingState: string;
+      createdAt: Date;
+      updatedAt: Date;
+      customer: {
+        id: string;
+        name: string;
+        email: string;
+        phone: string | null;
+      };
+      items: Array<{
+        id: string;
+        productName: string;
+        imageUrl: string | null;
+        size: string;
+        color: string;
+        quantity: number;
+      }>;
+    }>();
+
+    for (const row of rows) {
+      const existing = grouped.get(row.id);
+
+      if (existing) {
+        if (row.item) existing.items.push(row.item);
+        continue;
+      }
+
+      grouped.set(row.id, {
+        id: row.id,
+        status: row.status,
+        subtotalInCents: row.subtotalInCents,
+        shippingInCents: row.shippingInCents,
+        totalInCents: row.totalInCents,
+        shippingCep: row.shippingCep,
+        shippingStreet: row.shippingStreet,
+        shippingNumber: row.shippingNumber,
+        shippingComplement: row.shippingComplement,
+        shippingNeighborhood: row.shippingNeighborhood,
+        shippingCity: row.shippingCity,
+        shippingState: row.shippingState,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+        customer: row.customer,
+        items: row.item ? [row.item] : [],
+      });
+    }
+
+    return Array.from(grouped.values());
+  }
   async findById(id: string) {
     const [order] = await db
       .select()
