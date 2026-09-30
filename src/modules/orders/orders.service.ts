@@ -162,6 +162,9 @@ export class OrdersService {
           productName:
             variant.productName,
 
+          imageUrl:
+            variant.productImageUrl,
+
           sku:
             variant.sku,
 
