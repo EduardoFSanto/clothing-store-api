@@ -6,6 +6,9 @@ import {
   PaymentsRepository,
 } from "../../payments.repository.js";
 
+const emailNotificationService =
+  new EmailNotificationService();
+
 export class InfinitePayWebhookService {
   constructor(
     private readonly paymentsRepository: PaymentsRepository,
@@ -170,6 +173,35 @@ export class InfinitePayWebhookService {
             input.receipt_url,
         },
       );
+
+    const customer =
+      await this.paymentsRepository.findCustomerById(
+        order.customerId,
+      );
+
+    const orderItems =
+      await this.paymentsRepository.findOrderItems(
+        order.id,
+      );
+
+    if (customer) {
+      try {
+        await emailNotificationService.sendPaidOrderNotification({
+          orderId: order.id,
+          customerName: customer.name,
+          customerEmail: customer.email,
+          totalInCents: order.totalInCents,
+          paymentMethod: input.capture_method,
+          receiptUrl: input.receipt_url,
+          items: orderItems,
+        });
+      } catch (error) {
+        console.error(
+          "Paid order email notification error:",
+          error,
+        );
+      }
+    }
 
     return result.payment;
   }
