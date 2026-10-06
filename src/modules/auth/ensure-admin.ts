@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { users } from "../../db/schema/index.js";
 import { hashPassword, verifyPassword } from "./password.js";
+import { AuthRepository } from "./auth.repository.js";
 
 const authRepository = new AuthRepository();
 
