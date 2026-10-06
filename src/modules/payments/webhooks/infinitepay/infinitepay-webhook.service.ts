@@ -72,19 +72,9 @@ export class InfinitePayWebhookService {
 
     if (existingPayment) {
       /*
-       * Se já foi processado como pago,
-       * tratamos o webhook como idempotente.
-       */
-      if (
-        existingPayment.status ===
-        "paid"
-      ) {
-        return existingPayment;
-      }
-
-      /*
-       * O mesmo transaction_nsu não deve
-       * ser associado a outro pagamento.
+       * O transaction_nsu é único globalmente.
+       * Antes de tratar como idempotente, confirmamos
+       * que ele pertence ao pedido recebido.
        */
       if (
         existingPayment.orderId !==
@@ -94,6 +84,17 @@ export class InfinitePayWebhookService {
           "Transaction already belongs to another order",
         );
       }
+
+      /*
+       * Se já foi processado como pago,
+       * tratamos o webhook como idempotente.
+       */
+      if (
+        existingPayment.status ===
+        "paid"
+      ) {
+        return existingPayment;
+      }
     }
 
     /*
@@ -101,7 +102,7 @@ export class InfinitePayWebhookService {
      * quando o checkout foi iniciado.
      */
     const payment =
-      await this.paymentsRepository.findByOrderIdAndProvider(
+      await this.paymentsRepository.findPendingByOrderIdAndProvider(
         input.order_nsu,
         "infinitepay",
       );
