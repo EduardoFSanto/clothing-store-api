@@ -113,6 +113,13 @@
       "when": 1791050000000,
       "tag": "0015_one_pending_payment_per_order",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791060000000,
+      "tag": "0016_product_variant_stock_non_negative",
+      "breakpoints": true
     }
   ]
 }
