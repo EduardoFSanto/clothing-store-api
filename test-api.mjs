@@ -1075,7 +1075,7 @@ async function run() {
           order.totalInCents,
 
         paid_amount:
-          order.totalInCents,
+          order.totalInCents + 10,
 
         installments: 1,
 
