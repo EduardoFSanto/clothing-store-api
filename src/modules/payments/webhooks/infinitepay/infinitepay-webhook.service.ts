@@ -155,27 +155,52 @@ export class InfinitePayWebhookService {
      * 8. Atualiza payment + order dentro
      * de uma única transação.
      */
-    const result =
-      await this.paymentsRepository.markPaymentAsPaid(
-        payment.id,
-        order.id,
-        {
-          method:
-            input.capture_method,
+    let result;
 
-          providerPaymentId:
-            input.transaction_nsu,
+    try {
+      result =
+        await this.paymentsRepository.markPaymentAsPaid(
+          payment.id,
+          order.id,
+          {
+            method:
+              input.capture_method,
 
-          invoiceSlug:
-            input.invoice_slug,
+            providerPaymentId:
+              input.transaction_nsu,
 
-          transactionNsu:
-            input.transaction_nsu,
+            invoiceSlug:
+              input.invoice_slug,
 
-          receiptUrl:
-            input.receipt_url,
-        },
-      );
+            transactionNsu:
+              input.transaction_nsu,
+
+            receiptUrl:
+              input.receipt_url,
+          },
+        );
+    } catch (error) {
+      /*
+       * Dois webhooks iguais podem chegar
+       * simultaneamente. Se outro processamento
+       * acabou de confirmar este transaction_nsu,
+       * o segundo deve ser tratado como idempotente.
+       */
+      const processedPayment =
+        await this.paymentsRepository.findByTransactionNsu(
+          input.transaction_nsu,
+        );
+
+      if (
+        processedPayment &&
+        processedPayment.orderId === order.id &&
+        processedPayment.status === "paid"
+      ) {
+        return processedPayment;
+      }
+
+      throw error;
+    }
 
     const customer =
       await this.paymentsRepository.findCustomerById(
