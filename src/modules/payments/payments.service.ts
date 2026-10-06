@@ -83,14 +83,49 @@ export class PaymentsService {
       throw new Error("Order has no items");
     }
 
-    const payment =
-      await this.paymentsRepository.createPayment({
-        orderId,
-        status: "pending",
-        method: "checkout",
-        amountInCents: order.totalInCents,
-        provider: "infinitepay",
-      });
+    let payment;
+
+    try {
+      payment =
+        await this.paymentsRepository.createPayment({
+          orderId,
+          status: "pending",
+          method: "checkout",
+          amountInCents: order.totalInCents,
+          provider: "infinitepay",
+        });
+    } catch (error) {
+      const isPendingPaymentConflict =
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        error.code === "23505";
+
+      if (!isPendingPaymentConflict) {
+        throw error;
+      }
+
+      const existingPayment =
+        await this.paymentsRepository.findPendingByOrderIdAndProvider(
+          orderId,
+          "infinitepay",
+        );
+
+      if (!existingPayment) {
+        throw new Error("Failed to create payment");
+      }
+
+      if (!existingPayment.checkoutUrl) {
+        throw new Error(
+          "A payment checkout is already being created for this order",
+        );
+      }
+
+      return {
+        payment: existingPayment,
+        checkoutUrl: existingPayment.checkoutUrl,
+      };
+    }
 
     if (!payment) {
       throw new Error("Failed to create payment");
