@@ -67,6 +67,12 @@ export class AuthRepository {
     return result ?? null;
   }
 
+  async deleteSessionsByUserId(userId: string) {
+    await db
+      .delete(sessions)
+      .where(eq(sessions.userId, userId));
+  }
+
   async deleteSession(token: string) {
     await db
       .delete(sessions)
