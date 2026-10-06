@@ -227,7 +227,7 @@ export class PaymentsRepository {
     return payment ?? null;
   }
 
-  async findByOrderIdAndProvider(
+  async findPendingByOrderIdAndProvider(
     orderId: string,
     provider: string,
   ) {
@@ -238,6 +238,7 @@ export class PaymentsRepository {
         and(
           eq(payments.orderId, orderId),
           eq(payments.provider, provider),
+          eq(payments.status, "pending"),
         ),
       )
       .limit(1);
