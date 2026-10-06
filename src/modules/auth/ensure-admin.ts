@@ -26,6 +26,7 @@ export async function ensureAdminUser() {
     .select({
       id: users.id,
       passwordHash: users.passwordHash,
+      role: users.role,
     })
     .from(users)
     .where(eq(users.email, normalizedEmail))
@@ -45,6 +46,7 @@ export async function ensureAdminUser() {
         .set({
           passwordHash,
           name: adminName,
+          role: "admin",
         })
         .where(eq(users.id, existingUser.id));
 
