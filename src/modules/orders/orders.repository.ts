@@ -291,6 +291,22 @@ export class OrdersRepository {
           return false;
         }
 
+        const recentPendingPayment = await tx
+          .select({ id: payments.id })
+          .from(payments)
+          .where(
+            and(
+              eq(payments.orderId, order.id),
+              eq(payments.status, "pending"),
+              sql`${payments.createdAt} > ${cutoff}`,
+            ),
+          )
+          .limit(1);
+
+        if (recentPendingPayment.length > 0) {
+          return false;
+        }
+
         const items = await tx
           .select({
             productVariantId: orderItems.productVariantId,
