@@ -51,11 +51,11 @@ export class InfinitePayWebhookService {
     }
 
     if (
-      input.paid_amount !==
+      input.paid_amount <
       order.totalInCents
     ) {
       throw new Error(
-        "Paid amount does not match order total",
+        "Paid amount is lower than order total",
       );
     }
 
