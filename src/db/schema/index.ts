@@ -54,6 +54,7 @@ export const sessions = pgTable("sessions", {
     .notNull(),
 });import {
   boolean,
+  check,
   integer,
   pgTable,
   sql,
@@ -133,7 +134,9 @@ export const productImages = pgTable("product_images", {
   }).defaultNow().notNull(),
 });
 
-export const productVariants = pgTable("product_variants", {
+export const productVariants = pgTable(
+  "product_variants",
+  {
   id: uuid("id").defaultRandom().primaryKey(),
 
   productId: uuid("product_id")
@@ -188,7 +191,14 @@ export const productVariants = pgTable("product_variants", {
   })
     .defaultNow()
     .notNull(),
-});
+  },
+  (table) => [
+    check(
+      "product_variants_stock_non_negative",
+      sql`${table.stock} >= 0`,
+    ),
+  ],
+);
 
 export const customers = pgTable("customers", {
   id: uuid("id").defaultRandom().primaryKey(),
