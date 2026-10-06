@@ -233,6 +233,29 @@ export class OrdersService {
     );
   }
 
+  async expirePendingOrders() {
+    const timeoutMinutes = Number(
+      process.env.ORDER_PAYMENT_TIMEOUT_MINUTES ?? 30,
+    );
+
+    if (
+      !Number.isInteger(timeoutMinutes) ||
+      timeoutMinutes <= 0
+    ) {
+      throw new Error(
+        "ORDER_PAYMENT_TIMEOUT_MINUTES must be a positive integer",
+      );
+    }
+
+    const cutoff = new Date(
+      Date.now() - timeoutMinutes * 60 * 1000,
+    );
+
+    return this.ordersRepository.expirePendingOrders(
+      cutoff,
+    );
+  }
+
   async cancel(
     id: string,
   ) {
