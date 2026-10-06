@@ -257,6 +257,106 @@ export class OrdersRepository {
     });
   }
 
+  async expirePendingOrders(cutoff: Date) {
+    const pendingOrders = await db
+      .select({ id: orders.id })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.status, "pending"),
+          sql`${orders.createdAt} <= ${cutoff}`,
+        ),
+      );
+
+    let expiredCount = 0;
+
+    for (const pendingOrder of pendingOrders) {
+      const expired = await db.transaction(async (tx) => {
+        const [order] = await tx
+          .update(orders)
+          .set({
+            status: "cancelled",
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(orders.id, pendingOrder.id),
+              eq(orders.status, "pending"),
+              sql`${orders.createdAt} <= ${cutoff}`,
+            ),
+          )
+          .returning();
+
+        if (!order) {
+          return false;
+        }
+
+        const items = await tx
+          .select({
+            productVariantId: orderItems.productVariantId,
+            quantity: orderItems.quantity,
+            sku: orderItems.sku,
+          })
+          .from(orderItems)
+          .where(eq(orderItems.orderId, order.id));
+
+        for (const item of items) {
+          const [updatedVariant] = await tx
+            .update(productVariants)
+            .set({
+              stock: sql`${productVariants.stock} + ${item.quantity}`,
+              updatedAt: new Date(),
+            })
+            .where(eq(productVariants.id, item.productVariantId))
+            .returning({ id: productVariants.id });
+
+          if (!updatedVariant) {
+            throw new Error(
+              `Failed to restore stock for SKU ${item.sku}`,
+            );
+          }
+
+          const [movement] = await tx
+            .insert(stockMovements)
+            .values({
+              productVariantId: item.productVariantId,
+              type: "entry",
+              quantity: item.quantity,
+              reason: `Order ${order.id} payment timeout`,
+            })
+            .returning();
+
+          if (!movement) {
+            throw new Error(
+              "Failed to create stock expiration movement",
+            );
+          }
+        }
+
+        await tx
+          .update(payments)
+          .set({
+            status: "cancelled",
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(payments.orderId, order.id),
+              eq(payments.status, "pending"),
+            ),
+          );
+
+        return true;
+      });
+
+      if (expired) {
+        expiredCount += 1;
+      }
+    }
+
+    return expiredCount;
+  }
+
   async cancelOrder(orderId: string) {
     return db.transaction(async (tx) => {
       const [order] = await tx
