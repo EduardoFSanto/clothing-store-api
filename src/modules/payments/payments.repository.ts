@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 import { db } from "../../db/client.js";
 
@@ -68,23 +68,39 @@ export class PaymentsRepository {
     transactionNsu?: string;
     receiptUrl?: string;
   }) {
-    const [payment] = await db
-      .insert(payments)
-      .values({
-        orderId: data.orderId,
-        status: data.status,
-        method: data.method,
-        amountInCents: data.amountInCents,
-        provider: data.provider,
-        providerPaymentId: data.providerPaymentId,
-        checkoutUrl: data.checkoutUrl,
-        invoiceSlug: data.invoiceSlug,
-        transactionNsu: data.transactionNsu,
-        receiptUrl: data.receiptUrl,
-      })
-      .returning();
+    return db.transaction(async (tx) => {
+      const lockedOrder = await tx.execute(
+        sql`SELECT id
+            FROM orders
+            WHERE id = ${data.orderId}
+              AND status = 'pending'
+            FOR UPDATE`,
+      );
 
-    return payment;
+      if (lockedOrder.length === 0) {
+        throw new Error(
+          "Payment can only be created for pending orders",
+        );
+      }
+
+      const [payment] = await tx
+        .insert(payments)
+        .values({
+          orderId: data.orderId,
+          status: data.status,
+          method: data.method,
+          amountInCents: data.amountInCents,
+          provider: data.provider,
+          providerPaymentId: data.providerPaymentId,
+          checkoutUrl: data.checkoutUrl,
+          invoiceSlug: data.invoiceSlug,
+          transactionNsu: data.transactionNsu,
+          receiptUrl: data.receiptUrl,
+        })
+        .returning();
+
+      return payment;
+    });
   }
 
   async updatePayment(
