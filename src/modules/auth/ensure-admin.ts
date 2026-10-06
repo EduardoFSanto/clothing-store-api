@@ -4,6 +4,8 @@ import { db } from "../../db/client.js";
 import { users } from "../../db/schema/index.js";
 import { hashPassword, verifyPassword } from "./password.js";
 
+const authRepository = new AuthRepository();
+
 export async function ensureAdminUser() {
   const adminEmail = process.env.ADMIN_EMAIL;
   const adminPassword = process.env.ADMIN_PASSWORD;
@@ -44,6 +46,10 @@ export async function ensureAdminUser() {
           name: adminName,
         })
         .where(eq(users.id, existingUser.id));
+
+      await authRepository.deleteSessionsByUserId(
+        existingUser.id,
+      );
 
       console.log(`Admin password synchronized: ${normalizedEmail}`);
     }
