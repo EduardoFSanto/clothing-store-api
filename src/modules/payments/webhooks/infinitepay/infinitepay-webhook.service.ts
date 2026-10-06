@@ -2,6 +2,8 @@ import type {
   InfinitePayWebhookInput,
 } from "./infinitepay-webhook.schemas.js";
 
+import { EmailNotificationService } from "../../../notifications/email-notification.service.js";
+
 import {
   PaymentsRepository,
 } from "../../payments.repository.js";
