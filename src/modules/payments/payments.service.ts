@@ -46,17 +46,19 @@ export class PaymentsService {
       );
     }
 
-    const existingPayments =
-      await this.paymentsRepository.findByOrderId(orderId);
-
     const pendingPayment =
-      existingPayments.find(
-        (payment) =>
-          payment.status === "pending" &&
-          payment.checkoutUrl,
+      await this.paymentsRepository.findPendingByOrderIdAndProvider(
+        orderId,
+        "infinitepay",
       );
 
     if (pendingPayment) {
+      if (!pendingPayment.checkoutUrl) {
+        throw new Error(
+          "A payment checkout is already being created for this order",
+        );
+      }
+
       return {
         payment: pendingPayment,
         checkoutUrl: pendingPayment.checkoutUrl,
