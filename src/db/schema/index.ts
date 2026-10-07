@@ -52,14 +52,11 @@ export const sessions = pgTable("sessions", {
   })
     .defaultNow()
     .notNull(),
-});import { sql } from "drizzle-orm";
-
-import {
+});import {
   boolean,
   check,
   integer,
   pgTable,
-  uniqueIndex,
   timestamp,
   uuid,
   varchar,
@@ -448,11 +445,6 @@ export const payments = pgTable("payments", {
     .defaultNow()
     .notNull(),
 });
-
-export const paymentsPendingOrderProviderUniqueIndex =
-  uniqueIndex("payments_pending_order_provider_unique")
-    .on(payments.orderId, payments.provider)
-    .where(sql`${payments.status} = 'pending'`);
 
 export const stockMovements = pgTable("stock_movements", {
   id: uuid("id").defaultRandom().primaryKey(),
