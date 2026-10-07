@@ -69,3 +69,27 @@ export const loginRateLimiter =
     windowMs: 15 * 60 * 1000,
     max: 10,
   });
+
+export const customerRateLimiter =
+  createRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+  });
+
+export const orderRateLimiter =
+  createRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+  });
+
+export const paymentRateLimiter =
+  createRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+  });
+
+export const shippingRateLimiter =
+  createRateLimiter({
+    windowMs: 1 * 60 * 1000,
+    max: 30,
+  });
