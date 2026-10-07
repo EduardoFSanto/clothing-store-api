@@ -1,3 +1,4 @@
+import { shippingRateLimiter } from "../../middleware/rate-limit.js";
 import { Router } from "express";
 
 import {
@@ -10,10 +11,12 @@ export const shippingRoutes =
 
 shippingRoutes.get(
   "/cep",
+  shippingRateLimiter,
   lookupCepController,
 );
 
 shippingRoutes.post(
   "/quote",
+  shippingRateLimiter,
   calculateShippingController,
 );
