@@ -52,12 +52,13 @@ export const sessions = pgTable("sessions", {
   })
     .defaultNow()
     .notNull(),
-});import {
+});import { sql } from "drizzle-orm";
+
+import {
   boolean,
   check,
   integer,
   pgTable,
-  sql,
   uniqueIndex,
   timestamp,
   uuid,
