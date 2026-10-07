@@ -18,6 +18,9 @@ import { stockRoutes } from "./modules/stock/stock.routes.js";
 
 export const app = express();
 
+app.disable("x-powered-by");
+app.set("trust proxy", 1);
+
 app.use(
   cors({
     origin:
@@ -29,6 +32,28 @@ app.use(
 
 app.use(cookieParser());
 app.use(express.json({ limit: "1mb" }));
+
+app.use((_req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader(
+    "Referrer-Policy",
+    "strict-origin-when-cross-origin",
+  );
+  res.setHeader(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=()",
+  );
+
+  if (process.env.NODE_ENV === "production") {
+    res.setHeader(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains",
+    );
+  }
+
+  next();
+});
 
 app.get("/health", (_req, res) => {
   return res.json({
